@@ -25,7 +25,7 @@
 	<groupId>my.group.id</groupId>
 	<artifactId>DemoService-QueryOptions-TCS</artifactId>
 	<packaging>war</packaging>
-	<version>4.10.0</version>
+	<version>4.10.0-dev</version>
 
 	<name>${project.artifactId}-Webapp</name>
 
