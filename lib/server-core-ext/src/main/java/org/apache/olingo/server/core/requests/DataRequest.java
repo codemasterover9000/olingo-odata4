@@ -345,15 +345,15 @@ public class DataRequest extends ServiceRequest {
         boolean ifNoneMatch = (getHeader(HttpHeader.IF_NONE_MATCH)!= null 
             && "*".equals(getHeader(HttpHeader.IF_NONE_MATCH)));
         if(ifMatch) {
-          handler.updateEntity(DataRequest.this, getEntityFromClient(), isPATCH(), getETag(),
+          handler.updateEntity(DataRequest.this, null, isPATCH(), getETag(),
               entityResponse);
         } else if (ifNoneMatch) {
           // 11.4.4
           entityResponse = EntityResponse.getInstance(DataRequest.this,
               contextURL, false, response, getReturnRepresentation());
-          handler.createEntity(DataRequest.this, getEntityFromClient(), entityResponse);
+          handler.createEntity(DataRequest.this, null, entityResponse);
         } else {
-          handler.upsertEntity(DataRequest.this, getEntityFromClient(), isPATCH(), getETag(),
+          handler.upsertEntity(DataRequest.this, null, isPATCH(), getETag(),
               entityResponse);
         }
       } else if (isPOST()) {
@@ -362,12 +362,12 @@ public class DataRequest extends ServiceRequest {
               contextURL, false, response, getReturnRepresentation());
           UriResourceNavigation last = getNavigations().getLast();
           EdmEntityType navigationType = last.getProperty().getType();
-          Entity entity = getEntityFromClient(navigationType);
+          Entity entity = null;
           handler.createEntity(DataRequest.this, entity,entityResponse);
         } else {
           entityResponse = EntityResponse.getInstance(DataRequest.this,
               contextURL, false, response, getReturnRepresentation());
-          handler.createEntity(DataRequest.this, getEntityFromClient(),entityResponse);
+          handler.createEntity(DataRequest.this,null ,entityResponse);
         }
       } else if (isDELETE()) {
         handler.deleteEntity(DataRequest.this, getETag(), entityResponse);
