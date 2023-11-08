@@ -33,11 +33,23 @@ public interface EdmEntityType extends EdmStructuredType {
   List<String> getKeyPredicateNames();
 
   /**
+   * @return collection of key property names of type List&lt;String&gt;
+   */
+  List<String> getAlternateKeyPredicateNames();
+
+  /**
    * Get all key properties references as list of {@link EdmKeyPropertyRef}.
    *
    * @return collection of key properties of type List&lt;EdmKeyPropertyRef&gt;
    */
   List<EdmKeyPropertyRef> getKeyPropertyRefs();
+
+  /**
+   * Get all key properties references as list of {@link EdmKeyPropertyRef}.
+   *
+   * @return collection of key properties of type List&lt;EdmKeyPropertyRef&gt;
+   */
+  List<EdmAlternateKeyPropertyRef> getAlternateKeyPropertyRefs();
 
   /**
    * Get a key property ref by its name.
@@ -46,6 +58,14 @@ public interface EdmEntityType extends EdmStructuredType {
    * @return {@link EdmKeyPropertyRef} for given name
    */
   EdmKeyPropertyRef getKeyPropertyRef(String keyPredicateName);
+
+  /**
+   * Get an alternate key property ref by its name.
+   *
+   * @param keyPredicateName name of key property
+   * @return {@link EdmKeyPropertyRef} for given name
+   */
+  EdmAlternateKeyPropertyRef getAlternateKeyPropertyRef(String keyPredicateName);
 
   /**
    * Indicates if the entity type is treated as Media Link Entry with associated Media Resource.

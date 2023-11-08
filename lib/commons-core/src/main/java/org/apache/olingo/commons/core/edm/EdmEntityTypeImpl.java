@@ -24,12 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.olingo.commons.api.edm.Edm;
-import org.apache.olingo.commons.api.edm.EdmEntityType;
-import org.apache.olingo.commons.api.edm.EdmException;
-import org.apache.olingo.commons.api.edm.EdmKeyPropertyRef;
-import org.apache.olingo.commons.api.edm.EdmStructuredType;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.*;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityType;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
@@ -41,9 +36,13 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
   private final boolean hasStream;
   protected EdmEntityType entityBaseType;
   private final List<String> keyPredicateNames = Collections.synchronizedList(new ArrayList<String>());
+  private final List<String> alternateKeyPredicateNames = Collections.synchronizedList(new ArrayList<String>());
   private final Map<String, EdmKeyPropertyRef> keyPropertyRefs =
-      Collections.synchronizedMap(new LinkedHashMap<String, EdmKeyPropertyRef>());
+          Collections.synchronizedMap(new LinkedHashMap<String, EdmKeyPropertyRef>());
+  private final Map<String, EdmAlternateKeyPropertyRef> alternateKeyPropertyRefs =
+          Collections.synchronizedMap(new LinkedHashMap<String, EdmAlternateKeyPropertyRef>());
   private List<EdmKeyPropertyRef> keyPropertyRefsList;
+  private List<EdmAlternateKeyPropertyRef> alternateKeyPropertyRefsList;
 
   public EdmEntityTypeImpl(final Edm edm, final FullQualifiedName name, final CsdlEntityType entityType) {
     super(edm, name, EdmTypeKind.ENTITY, entityType);
@@ -53,24 +52,33 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
 
   @Override
   protected void checkBaseType() {
-    if (!baseTypeChecked) {
+      if (baseTypeChecked) {
+          return;
+      }
       if (baseTypeName != null) {
         baseType = buildBaseType(baseTypeName);
         entityBaseType = (EdmEntityType) baseType;
       }
       if (baseType == null
-          || (baseType.isAbstract() && ((EdmEntityType) baseType).getKeyPropertyRefs().isEmpty())) {
+              || (baseType.isAbstract() && ((EdmEntityType) baseType).getKeyPropertyRefs().isEmpty())) {
         final List<CsdlPropertyRef> key = entityType.getKey();
         if (key != null) {
-          final List<EdmKeyPropertyRef> edmKey = new ArrayList<EdmKeyPropertyRef>();
+          final List<EdmKeyPropertyRef> edmKey = new ArrayList<>();
           for (CsdlPropertyRef ref : key) {
             edmKey.add(new EdmKeyPropertyRefImpl(this, ref));
           }
           setEdmKeyPropertyRef(edmKey);
         }
+        final List<CsdlPropertyRef> alternateKey = entityType.getAlternateKey();
+        if (alternateKey != null) {
+          final List<EdmAlternateKeyPropertyRef> edmKey = new ArrayList<>();
+          for (CsdlPropertyRef ref : alternateKey) {
+            edmKey.add(new EdmAlternateKeyPropertyRefImpl(this, ref));
+          }
+          setEdmAlternateKeyPropertyRef(edmKey);
+        }
       }
       baseTypeChecked = true;
-    }
   }
 
   protected void setEdmKeyPropertyRef(final List<EdmKeyPropertyRef> edmKey) {
@@ -81,6 +89,18 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
       } else {
         keyPredicateNames.add(ref.getAlias());
         keyPropertyRefs.put(ref.getAlias(), ref);
+      }
+    }
+  }
+
+  protected void setEdmAlternateKeyPropertyRef(final List<EdmAlternateKeyPropertyRef> edmKey) {
+    for (EdmAlternateKeyPropertyRef ref : edmKey) {
+      if (ref.getAlias() == null) {
+        alternateKeyPredicateNames.add(ref.getName());
+        alternateKeyPropertyRefs.put(ref.getName(), ref);
+      } else {
+        alternateKeyPredicateNames.add(ref.getAlias());
+        alternateKeyPropertyRefs.put(ref.getAlias(), ref);
       }
     }
   }
@@ -113,6 +133,15 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
   }
 
   @Override
+  public List<String> getAlternateKeyPredicateNames() {
+    checkBaseType();
+    if (alternateKeyPredicateNames.isEmpty() && baseType != null) {
+      return entityBaseType.getKeyPredicateNames();
+    }
+    return Collections.unmodifiableList(keyPredicateNames);
+  }
+
+  @Override
   public List<EdmKeyPropertyRef> getKeyPropertyRefs() {
     checkBaseType();
     if (keyPropertyRefsList == null) {
@@ -125,6 +154,18 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
   }
 
   @Override
+  public List<EdmAlternateKeyPropertyRef> getAlternateKeyPropertyRefs() {
+    checkBaseType();
+    if (alternateKeyPropertyRefsList == null) {
+      alternateKeyPropertyRefsList = new ArrayList<EdmAlternateKeyPropertyRef>(alternateKeyPropertyRefs.values());
+    }
+    if (alternateKeyPropertyRefsList.isEmpty() && entityBaseType != null) {
+      return entityBaseType.getAlternateKeyPropertyRefs();
+    }
+    return Collections.unmodifiableList(alternateKeyPropertyRefsList);
+  }
+
+  @Override
   public EdmKeyPropertyRef getKeyPropertyRef(final String keyPredicateName) {
     checkBaseType();
     final EdmKeyPropertyRef edmKeyPropertyRef = keyPropertyRefs.get(keyPredicateName);
@@ -132,6 +173,16 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
       return entityBaseType.getKeyPropertyRef(keyPredicateName);
     }
     return edmKeyPropertyRef;
+  }
+
+  @Override
+  public EdmAlternateKeyPropertyRef getAlternateKeyPropertyRef(String keyPredicateName) {
+    checkBaseType();
+    final EdmAlternateKeyPropertyRef edmAlternateKeyPropertyRef = alternateKeyPropertyRefs.get(keyPredicateName);
+    if (edmAlternateKeyPropertyRef == null && entityBaseType != null) {
+      return entityBaseType.getAlternateKeyPropertyRef(keyPredicateName);
+    }
+    return edmAlternateKeyPropertyRef;
   }
 
   @Override

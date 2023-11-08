@@ -28,20 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.olingo.commons.api.edm.Edm;
-import org.apache.olingo.commons.api.edm.EdmEntityType;
-import org.apache.olingo.commons.api.edm.EdmFunction;
-import org.apache.olingo.commons.api.edm.EdmKeyPropertyRef;
-import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
-import org.apache.olingo.commons.api.edm.EdmParameter;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.EdmProperty;
-import org.apache.olingo.commons.api.edm.EdmStructuredType;
-import org.apache.olingo.commons.api.edm.EdmType;
-import org.apache.olingo.commons.api.edm.EdmTypeDefinition;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.*;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -398,15 +385,15 @@ public class ParserHelper {
         throw new UriValidationException("Duplicated key property " + keyPredicateName,
             UriValidationException.MessageKeys.DOUBLE_KEY_PROPERTY, keyPredicateName);
       }
-      if (remainingKeyNames.isEmpty()) {
-        throw new UriParserSemanticException("Too many key properties.",
-            UriParserSemanticException.MessageKeys.WRONG_NUMBER_OF_KEY_PROPERTIES,
-            Integer.toString(parameters.size()), Integer.toString(parameters.size() + 1));
-      }
-      if (!remainingKeyNames.remove(keyPredicateName)) {
-        throw new UriValidationException("Unknown key property " + keyPredicateName,
-            UriValidationException.MessageKeys.INVALID_KEY_PROPERTY, keyPredicateName);
-      }
+//      if (remainingKeyNames.isEmpty()) {
+//        throw new UriParserSemanticException("Too many key properties.",
+//            UriParserSemanticException.MessageKeys.WRONG_NUMBER_OF_KEY_PROPERTIES,
+//            Integer.toString(parameters.size()), Integer.toString(parameters.size() + 1));
+//      }
+//      if (!remainingKeyNames.remove(keyPredicateName)) {
+//        throw new UriValidationException("Unknown key property " + keyPredicateName,
+//            UriValidationException.MessageKeys.INVALID_KEY_PROPERTY, keyPredicateName);
+//      }
       parameters.add(keyValuePair(tokenizer, keyPredicateName, edmEntityType, edm, referringType, aliases));
       parameterNames.add(keyPredicateName);
       hasComma = tokenizer.next(TokenKind.COMMA);
@@ -423,12 +410,25 @@ public class ParserHelper {
       final String keyPredicateName, final EdmEntityType edmEntityType,
       final Edm edm, final EdmType referringType, final Map<String, AliasQueryOption> aliases)
       throws UriParserException, UriValidationException {
-    final EdmKeyPropertyRef keyPropertyRef = edmEntityType.getKeyPropertyRef(keyPredicateName);
-    final EdmProperty edmProperty = keyPropertyRef == null ? null : keyPropertyRef.getProperty();
-    if (edmProperty == null) {
+    EdmKeyPropertyRef keyPropertyRef = edmEntityType.getKeyPropertyRef(keyPredicateName);
+     EdmProperty edmProperty = keyPropertyRef == null ? null : keyPropertyRef.getProperty();
+    if (edmProperty != null) {
+      return getUriParameter(tokenizer, keyPredicateName, edm, referringType, aliases, edmProperty);
+    } else {
+      EdmAlternateKeyPropertyRef alternateKeyPropertyRef = edmEntityType.getAlternateKeyPropertyRef(keyPredicateName);
+      edmProperty = alternateKeyPropertyRef == null ? null : alternateKeyPropertyRef.getProperty();
+      if (edmProperty != null) {
+        return getUriParameter(tokenizer, keyPredicateName, edm, referringType, aliases, edmProperty);
+      }
       throw new UriValidationException(keyPredicateName + " is not a valid key property name.",
-          UriValidationException.MessageKeys.INVALID_KEY_PROPERTY, keyPredicateName);
+                UriValidationException.MessageKeys.INVALID_KEY_PROPERTY, keyPredicateName);
     }
+  }
+
+  private static UriParameter getUriParameter(UriTokenizer tokenizer, String keyPredicateName, Edm edm,
+                                              EdmType referringType, Map<String, AliasQueryOption> aliases,
+                                              EdmProperty edmProperty) throws
+          UriParserException, UriValidationException {
     ParserHelper.requireNext(tokenizer, TokenKind.EQ);
     if (tokenizer.next(TokenKind.COMMA) || tokenizer.next(TokenKind.CLOSE) || tokenizer.next(TokenKind.EOF)) {
       throw new UriParserSyntaxException("Key value expected.", UriParserSyntaxException.MessageKeys.SYNTAX);
@@ -437,7 +437,7 @@ public class ParserHelper {
       return createUriParameter(edmProperty, keyPredicateName, tokenizer.getText(), edm, referringType, aliases);
     } else {
       throw new UriParserSemanticException(keyPredicateName + " has not a valid  key value.",
-          UriParserSemanticException.MessageKeys.INVALID_KEY_VALUE, keyPredicateName);
+              UriParserSemanticException.MessageKeys.INVALID_KEY_VALUE, keyPredicateName);
     }
   }
 

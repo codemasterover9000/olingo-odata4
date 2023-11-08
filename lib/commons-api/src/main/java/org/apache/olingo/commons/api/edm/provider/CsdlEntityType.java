@@ -28,6 +28,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 public class CsdlEntityType extends CsdlStructuralType {
 
   private List<CsdlPropertyRef> key;
+  private List<CsdlPropertyRef> alternateKeys;
 
   private boolean hasStream = false;
 
@@ -70,6 +71,16 @@ public class CsdlEntityType extends CsdlStructuralType {
     return key;
   }
 
+
+  /**
+   * Gets alternate key.
+   *
+   * @return the alternate key(s)
+   */
+  public List<CsdlPropertyRef> getAlternateKey() {
+    return alternateKeys;
+  }
+
   /**
    * Sets key.
    *
@@ -78,6 +89,17 @@ public class CsdlEntityType extends CsdlStructuralType {
    */
   public CsdlEntityType setKey(final List<CsdlPropertyRef> key) {
     this.key = key;
+    return this;
+  }
+
+  /**
+   * Sets key.
+   *
+   * @param key the key
+   * @return the key
+   */
+  public CsdlEntityType setAlternateKey(final List<CsdlPropertyRef> key) {
+    this.alternateKeys = key;
     return this;
   }
 
