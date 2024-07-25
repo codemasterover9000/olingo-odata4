@@ -99,7 +99,7 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
                                                               name = propertyPath.getValue();
                                                             }
                                                           }
-                                                          return (EdmAlternateKeyPropertyPath) new EdmAlternateKeyPropertyPathImpl(name, Optional.ofNullable(alias).orElse(name), propertyPath);
+                                                          return (EdmAlternateKeyPropertyPath) new EdmAlternateKeyPropertyPathImpl(this, name, Optional.ofNullable(alias).orElse(name), propertyPath);
                                                         }))
                                         .filter(Optional::isPresent)
                                         .map(Optional::get)
@@ -145,8 +145,8 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
   }
 
     @Override
-    public List<EdmAlternateKey> getAlternateKeys()
-    {
+    public List<EdmAlternateKey> getAlternateKeys() {
+        checkBaseType();
         return alternateKeys;
     }
 

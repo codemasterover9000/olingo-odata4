@@ -3,10 +3,7 @@ package org.apache.olingo.commons.core.edm;
 import org.apache.olingo.commons.api.edm.EdmAlternateKey;
 import org.apache.olingo.commons.api.edm.EdmAlternateKeyPropertyPath;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,5 +27,10 @@ public class EdmAlternateKeyImpl implements EdmAlternateKey {
     @Override
     public EdmAlternateKeyPropertyPath getAlternateKeyPropertyPath(String keyPredicateName) {
         return keyPropertyPathsByName.get(keyPredicateName);
+    }
+
+    @Override
+    public List<String> getKeyPredicateNames() {
+        return new ArrayList<>(keyPropertyPathsByName.keySet());
     }
 }

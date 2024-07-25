@@ -7,4 +7,6 @@ public interface EdmAlternateKey
     List<EdmAlternateKeyPropertyPath> getAlternateKeyPropertyPaths();
 
     EdmAlternateKeyPropertyPath getAlternateKeyPropertyPath(String keyPredicateName);
+
+    List<String> getKeyPredicateNames();
 }

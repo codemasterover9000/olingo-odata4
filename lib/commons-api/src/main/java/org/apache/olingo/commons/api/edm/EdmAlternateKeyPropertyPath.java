@@ -2,11 +2,7 @@ package org.apache.olingo.commons.api.edm;
 
 import org.apache.olingo.commons.api.edm.annotation.EdmPropertyPath;
 
-public interface EdmAlternateKeyPropertyPath
+public interface EdmAlternateKeyPropertyPath extends EdmKeyPropertyRef
 {
-    String getName();
-
-    String getAlias();
-
     EdmPropertyPath getPropertyPath();
 }
