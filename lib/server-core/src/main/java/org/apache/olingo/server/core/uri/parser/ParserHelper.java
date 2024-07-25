@@ -18,30 +18,7 @@
  */
 package org.apache.olingo.server.core.uri.parser;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import org.apache.olingo.commons.api.edm.Edm;
-import org.apache.olingo.commons.api.edm.EdmEntityType;
-import org.apache.olingo.commons.api.edm.EdmFunction;
-import org.apache.olingo.commons.api.edm.EdmKeyPropertyRef;
-import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
-import org.apache.olingo.commons.api.edm.EdmParameter;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.EdmProperty;
-import org.apache.olingo.commons.api.edm.EdmStructuredType;
-import org.apache.olingo.commons.api.edm.EdmType;
-import org.apache.olingo.commons.api.edm.EdmTypeDefinition;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.*;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -57,6 +34,9 @@ import org.apache.olingo.server.core.uri.parser.UriTokenizer.TokenKind;
 import org.apache.olingo.server.core.uri.queryoption.AliasQueryOptionImpl;
 import org.apache.olingo.server.core.uri.queryoption.expression.LiteralImpl;
 import org.apache.olingo.server.core.uri.validator.UriValidationException;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class ParserHelper {
 
@@ -292,6 +272,63 @@ public class ParserHelper {
       final EdmNavigationProperty partner,
       final Edm edm, final EdmType referringType, final Map<String, AliasQueryOption> aliases)
       throws UriParserException, UriValidationException {
+
+    try {
+      tokenizer.saveState();
+      return parsePrimaryKeyPredicate(tokenizer, edmEntityType, partner, edm, referringType, aliases);
+    }
+    catch(UriParserException | UriValidationException e)
+    {
+      List<EdmAlternateKey> alternateKeys = edmEntityType.getAlternateKeys();
+      if (alternateKeys.isEmpty())
+      {
+        throw e;
+      }
+
+      tokenizer.returnToSavedState();
+
+      Map<String, String> keyPartPredicates = parseKeyPartPredicates(tokenizer);
+      for (EdmAlternateKey alternateKey : alternateKeys) {
+        List<EdmAlternateKeyPropertyPath> alternateKeyPropertyPaths = alternateKey.getAlternateKeyPropertyPaths();
+        if (alternateKeyPropertyPaths.size() == keyPartPredicates.size()) {
+          List<UriParameter> uriParameters = parseAlternateKeyPredicate(alternateKey, keyPartPredicates, edm, referringType, aliases);
+          if (!uriParameters.isEmpty() && uriParameters.size() == alternateKeyPropertyPaths.size()) {
+            return uriParameters;
+          }
+        }
+      }
+    }
+
+    throw new UriParserSemanticException("The key value is not valid.",
+            UriParserSemanticException.MessageKeys.INVALID_KEY_VALUE, "");
+  }
+
+  private static List<UriParameter> parseAlternateKeyPredicate(EdmAlternateKey alternateKey,
+                                                               Map<String, String> keyPartPredicates,
+                                                               Edm edm,
+                                                               EdmType referringType,
+                                                               Map<String, AliasQueryOption> aliases)
+          throws UriValidationException, UriParserException {
+    List<UriParameter> result = new ArrayList<>();
+
+    for (String keyPredicateName : alternateKey.getKeyPredicateNames()) {
+      EdmAlternateKeyPropertyPath alternateKeyPropertyPath = alternateKey.getAlternateKeyPropertyPath(keyPredicateName);
+      EdmProperty edmProperty = alternateKeyPropertyPath == null ? null : alternateKeyPropertyPath.getProperty();
+
+      String literalValue = keyPartPredicates.get(keyPredicateName);
+      if (literalValue != null) {
+        result.add(createUriParameter(edmProperty, keyPredicateName, literalValue, edm, referringType, aliases));
+      }
+    }
+
+    return result;
+  }
+
+  private static List<UriParameter> parsePrimaryKeyPredicate(UriTokenizer tokenizer, final EdmEntityType edmEntityType,
+    final EdmNavigationProperty partner,
+    final Edm edm, final EdmType referringType, final Map<String, AliasQueryOption> aliases)
+      throws UriParserException, UriValidationException {
+
     final List<EdmKeyPropertyRef> keyPropertyRefs = edmEntityType.getKeyPropertyRefs();
     if (tokenizer.next(TokenKind.CLOSE)) {
       throw new UriParserSemanticException(
@@ -363,6 +400,31 @@ public class ParserHelper {
     } else {
       return keys;
     }
+  }
+
+  private static Map<String, String> parseKeyPartPredicates(UriTokenizer tokenizer) throws UriParserException {
+    requireNext(tokenizer, TokenKind.ODataIdentifier);
+
+    Map<String, String> keyPredicates = new HashMap<>();
+    boolean hasComma = false;
+    do {
+      final String keyPredicateName = tokenizer.getText();
+
+      requireNext(tokenizer, TokenKind.EQ);
+      if (tokenizer.next(TokenKind.COMMA) || tokenizer.next(TokenKind.CLOSE) || tokenizer.next(TokenKind.EOF)) {
+        throw new UriParserSyntaxException("Key value expected.", UriParserSyntaxException.MessageKeys.SYNTAX);
+      }
+
+      nextPrimitiveValue(tokenizer);
+      keyPredicates.put(keyPredicateName, tokenizer.getText());
+
+      hasComma = tokenizer.next(TokenKind.COMMA);
+      if (hasComma) {
+        ParserHelper.requireNext(tokenizer, TokenKind.ODataIdentifier);
+      }
+    } while (hasComma);
+    ParserHelper.requireNext(tokenizer, TokenKind.CLOSE);
+    return keyPredicates;
   }
 
   private static UriParameter simpleKey(UriTokenizer tokenizer, final EdmKeyPropertyRef edmKeyPropertyRef,
