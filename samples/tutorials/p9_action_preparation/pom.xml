@@ -25,7 +25,7 @@
 	<groupId>my.group.id</groupId>
 	<artifactId>DemoService-ActionPreparation</artifactId>
 	<packaging>war</packaging>
-	<version>5.0.1-AK-SNAPSHOT</version>
+	<version>5.0.1.0-AK</version>
 
 	<name>${project.artifactId}-Webapp</name>
 
