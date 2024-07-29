@@ -292,15 +292,15 @@ public class ParserHelper {
         List<EdmAlternateKeyPropertyPath> alternateKeyPropertyPaths = alternateKey.getAlternateKeyPropertyPaths();
         if (alternateKeyPropertyPaths.size() == keyPartPredicates.size()) {
           List<UriParameter> uriParameters = parseAlternateKeyPredicate(alternateKey, keyPartPredicates, edm, referringType, aliases);
-          if (!uriParameters.isEmpty() && uriParameters.size() == alternateKeyPropertyPaths.size()) {
+          if (uriParameters.size() == alternateKeyPropertyPaths.size()) {
             return uriParameters;
           }
         }
       }
     }
 
-    throw new UriParserSemanticException("The key value is not valid.",
-            UriParserSemanticException.MessageKeys.INVALID_KEY_VALUE, "");
+    throw new UriParserSemanticException("Key not allowed.",
+            UriParserSemanticException.MessageKeys.KEY_NOT_ALLOWED);
   }
 
   private static List<UriParameter> parseAlternateKeyPredicate(EdmAlternateKey alternateKey,
