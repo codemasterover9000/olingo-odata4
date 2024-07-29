@@ -147,7 +147,7 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
     @Override
     public List<EdmAlternateKey> getAlternateKeys() {
         checkBaseType();
-        return alternateKeys;
+        return Collections.unmodifiableList(alternateKeys);
     }
 
     @Override
