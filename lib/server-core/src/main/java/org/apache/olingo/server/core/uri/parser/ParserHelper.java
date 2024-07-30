@@ -18,7 +18,32 @@
  */
 package org.apache.olingo.server.core.uri.parser;
 
-import org.apache.olingo.commons.api.edm.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.apache.olingo.commons.api.edm.Edm;
+import org.apache.olingo.commons.api.edm.EdmAlternateKey;
+import org.apache.olingo.commons.api.edm.EdmAlternateKeyPropertyPath;
+import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmFunction;
+import org.apache.olingo.commons.api.edm.EdmKeyPropertyRef;
+import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
+import org.apache.olingo.commons.api.edm.EdmParameter;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.EdmProperty;
+import org.apache.olingo.commons.api.edm.EdmStructuredType;
+import org.apache.olingo.commons.api.edm.EdmType;
+import org.apache.olingo.commons.api.edm.EdmTypeDefinition;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import org.apache.olingo.server.api.OData;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -34,9 +59,6 @@ import org.apache.olingo.server.core.uri.parser.UriTokenizer.TokenKind;
 import org.apache.olingo.server.core.uri.queryoption.AliasQueryOptionImpl;
 import org.apache.olingo.server.core.uri.queryoption.expression.LiteralImpl;
 import org.apache.olingo.server.core.uri.validator.UriValidationException;
-
-import java.util.*;
-import java.util.Map.Entry;
 
 public class ParserHelper {
 
@@ -276,12 +298,9 @@ public class ParserHelper {
     try {
       tokenizer.saveState();
       return parsePrimaryKeyPredicate(tokenizer, edmEntityType, partner, edm, referringType, aliases);
-    }
-    catch(UriParserException | UriValidationException e)
-    {
+    } catch (UriParserException | UriValidationException e) {
       List<EdmAlternateKey> alternateKeys = edmEntityType.getAlternateKeys();
-      if (alternateKeys.isEmpty())
-      {
+      if (alternateKeys.isEmpty()) {
         throw e;
       }
 
@@ -291,7 +310,8 @@ public class ParserHelper {
       for (EdmAlternateKey alternateKey : alternateKeys) {
         List<EdmAlternateKeyPropertyPath> alternateKeyPropertyPaths = alternateKey.getAlternateKeyPropertyPaths();
         if (alternateKeyPropertyPaths.size() == keyPartPredicates.size()) {
-          List<UriParameter> uriParameters = parseAlternateKeyPredicate(alternateKey, keyPartPredicates, edm, referringType, aliases);
+          List<UriParameter> uriParameters =
+              parseAlternateKeyPredicate(alternateKey, keyPartPredicates, edm, referringType, aliases);
           if (uriParameters.size() == alternateKeyPropertyPaths.size()) {
             return uriParameters;
           }
@@ -300,15 +320,15 @@ public class ParserHelper {
     }
 
     throw new UriParserSemanticException("Key not allowed.",
-            UriParserSemanticException.MessageKeys.KEY_NOT_ALLOWED);
+        UriParserSemanticException.MessageKeys.KEY_NOT_ALLOWED);
   }
 
   private static List<UriParameter> parseAlternateKeyPredicate(EdmAlternateKey alternateKey,
-                                                               Map<String, String> keyPartPredicates,
-                                                               Edm edm,
-                                                               EdmType referringType,
-                                                               Map<String, AliasQueryOption> aliases)
-          throws UriValidationException, UriParserException {
+      Map<String, String> keyPartPredicates,
+      Edm edm,
+      EdmType referringType,
+      Map<String, AliasQueryOption> aliases)
+      throws UriValidationException, UriParserException {
     List<UriParameter> result = new ArrayList<>();
 
     for (String keyPredicateName : alternateKey.getKeyPredicateNames()) {

@@ -18,14 +18,33 @@
  */
 package org.apache.olingo.commons.core.edm;
 
-import org.apache.olingo.commons.api.edm.*;
-import org.apache.olingo.commons.api.edm.annotation.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.apache.olingo.commons.api.edm.Edm;
+import org.apache.olingo.commons.api.edm.EdmAlternateKey;
+import org.apache.olingo.commons.api.edm.EdmAlternateKeyPropertyPath;
+import org.apache.olingo.commons.api.edm.EdmAnnotation;
+import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmException;
+import org.apache.olingo.commons.api.edm.EdmKeyPropertyRef;
+import org.apache.olingo.commons.api.edm.EdmStructuredType;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.annotation.EdmCollection;
+import org.apache.olingo.commons.api.edm.annotation.EdmDynamicExpression;
+import org.apache.olingo.commons.api.edm.annotation.EdmExpression;
+import org.apache.olingo.commons.api.edm.annotation.EdmPropertyPath;
+import org.apache.olingo.commons.api.edm.annotation.EdmPropertyValue;
+import org.apache.olingo.commons.api.edm.annotation.EdmRecord;
 import org.apache.olingo.commons.api.edm.constants.EdmTypeKind;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityType;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmEntityType {
 
@@ -63,52 +82,55 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
           setEdmKeyPropertyRef(edmKey);
         }
 
-        alternateKeys = Optional.ofNullable(getAnnotation(edm.getTerm(new FullQualifiedName("Org.OData.Core.V1.AlternateKeys")), null))
-                .map(EdmAnnotation::getExpression)
-                .map(EdmExpression::asDynamic)
-                .map(EdmDynamicExpression::asCollection)
-                .map(EdmCollection::getItems)
-                .map(alternateKeyListExpression -> alternateKeyListExpression.stream()
-                        .map(alternateKeyExpression -> Optional.of(alternateKeyExpression)
+        alternateKeys = Optional.ofNullable(
+                getAnnotation(edm.getTerm(new FullQualifiedName("Org.OData.Core.V1.AlternateKeys")), null))
+            .map(EdmAnnotation::getExpression)
+            .map(EdmExpression::asDynamic)
+            .map(EdmDynamicExpression::asCollection)
+            .map(EdmCollection::getItems)
+            .map(alternateKeyListExpression -> alternateKeyListExpression.stream()
+                .map(alternateKeyExpression -> Optional.of(alternateKeyExpression)
+                    .map(EdmExpression::asDynamic)
+                    .map(EdmDynamicExpression::asRecord)
+                    .map(EdmRecord::getPropertyValues)
+                    .orElse(Collections.emptyList()))
+                .flatMap(edmPropertyValues -> edmPropertyValues.stream()
+                    .filter(edmPropertyValue -> Objects.equals(edmPropertyValue.getProperty(), "Key")))
+                .map(alternateKeyExpression -> Optional.of(alternateKeyExpression.getValue())
+                    .map(EdmExpression::asDynamic)
+                    .map(EdmDynamicExpression::asCollection)
+                    .map(alternateKeyPartListExpression -> alternateKeyPartListExpression.getItems().stream()
+                        .map(alternateKeyPartRecordExpression ->
+                            Optional.of(alternateKeyPartRecordExpression)
                                 .map(EdmExpression::asDynamic)
                                 .map(EdmDynamicExpression::asRecord)
                                 .map(EdmRecord::getPropertyValues)
-                                .orElse(Collections.emptyList()))
-                        .flatMap(edmPropertyValues -> edmPropertyValues.stream()
-                                .filter(edmPropertyValue -> Objects.equals(edmPropertyValue.getProperty(), "Key")))
-                        .map(alternateKeyExpression -> Optional.of(alternateKeyExpression.getValue())
-                                .map(EdmExpression::asDynamic)
-                                .map(EdmDynamicExpression::asCollection)
-                                .map(alternateKeyPartListExpression -> alternateKeyPartListExpression.getItems().stream()
-                                        .map(alternateKeyPartRecordExpression ->
-                                                Optional.of(alternateKeyPartRecordExpression)
-                                                        .map(EdmExpression::asDynamic)
-                                                        .map(EdmDynamicExpression::asRecord)
-                                                        .map(EdmRecord::getPropertyValues)
-                                                        .map(alternateKeyPart -> {
-                                                          String name = "";
-                                                          String alias = null;
-                                                          EdmPropertyPath propertyPath = null;
+                                .map(alternateKeyPart -> {
+                                  String name = "";
+                                  String alias = null;
+                                  EdmPropertyPath propertyPath = null;
 
-                                                          for (EdmPropertyValue keyPartValue : alternateKeyPart) {
-                                                            String property = keyPartValue.getProperty();
-                                                            if (property.equals("Alias")) {
-                                                              alias = keyPartValue.getValue().asConstant().getValueAsString();
-                                                            } else if (property.equals("Name")) {
-                                                              propertyPath = keyPartValue.getValue().asDynamic().asPropertyPath();
-                                                              name = propertyPath.getValue();
-                                                            }
-                                                          }
-                                                          return (EdmAlternateKeyPropertyPath) new EdmAlternateKeyPropertyPathImpl(this, name, Optional.ofNullable(alias).orElse(name), propertyPath);
-                                                        }))
-                                        .filter(Optional::isPresent)
-                                        .map(Optional::get)
-                                        .collect(Collectors.toList()))
-                                .map(edmAlternateKeyPropertyPaths -> (EdmAlternateKey) new EdmAlternateKeyImpl(edmAlternateKeyPropertyPaths)))
+                                  for (EdmPropertyValue keyPartValue : alternateKeyPart) {
+                                    String property = keyPartValue.getProperty();
+                                    if (property.equals("Alias")) {
+                                      alias = keyPartValue.getValue().asConstant().getValueAsString();
+                                    } else if (property.equals("Name")) {
+                                      propertyPath = keyPartValue.getValue().asDynamic().asPropertyPath();
+                                      name = propertyPath.getValue();
+                                    }
+                                  }
+                                  return (EdmAlternateKeyPropertyPath) new EdmAlternateKeyPropertyPathImpl(this, name,
+                                      Optional.ofNullable(alias).orElse(name), propertyPath);
+                                }))
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+                    .map(edmAlternateKeyPropertyPaths -> (EdmAlternateKey) new EdmAlternateKeyImpl(
+                        edmAlternateKeyPropertyPaths)))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList()))
+            .orElse(Collections.emptyList());
       }
       baseTypeChecked = true;
     }
@@ -146,11 +168,11 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
 
     @Override
     public List<EdmAlternateKey> getAlternateKeys() {
-        checkBaseType();
-        return Collections.unmodifiableList(alternateKeys);
+      checkBaseType();
+      return Collections.unmodifiableList(alternateKeys);
     }
 
-    @Override
+  @Override
   public List<String> getKeyPredicateNames() {
     checkBaseType();
     if (keyPredicateNames.isEmpty() && baseType != null) {
