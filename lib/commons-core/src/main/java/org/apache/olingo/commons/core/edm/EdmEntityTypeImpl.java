@@ -82,8 +82,8 @@ public class EdmEntityTypeImpl extends AbstractEdmStructuredType implements EdmE
           setEdmKeyPropertyRef(edmKey);
         }
 
-        alternateKeys = Optional.ofNullable(
-                getAnnotation(edm.getTerm(new FullQualifiedName("Org.OData.Core.V1.AlternateKeys")), null))
+        alternateKeys = Optional.ofNullable(edm.getTerm(new FullQualifiedName("Org.OData.Core.V1.AlternateKeys")))
+            .map(edmTerm -> getAnnotation(edmTerm, null))
             .map(EdmAnnotation::getExpression)
             .map(EdmExpression::asDynamic)
             .map(EdmDynamicExpression::asCollection)
