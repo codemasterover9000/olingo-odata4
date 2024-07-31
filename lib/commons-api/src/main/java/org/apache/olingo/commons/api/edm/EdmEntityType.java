@@ -61,4 +61,6 @@ public interface EdmEntityType extends EdmStructuredType {
    */
   @Override
   EdmEntityType getBaseType();
+
+  List<EdmAlternateKey> getAlternateKeys();
 }
